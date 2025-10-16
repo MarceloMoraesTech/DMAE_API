@@ -2,7 +2,6 @@
 // O 'dotenv' lê o arquivo .env e injeta as variáveis no process.env
 require('dotenv').config();
 
-console.log('Hello world')
 // 2. Importa a classe Pool do pacote 'pg'
 const { Pool } = require('pg');
 
