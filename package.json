@@ -1,0 +1,25 @@
+{
+  "name": "dmae_api",
+  "version": "1.0.0",
+  "description": "Projeto da turma da UNISENAC - RS, disciplina de Gestão Ágil de Projetos. Consiste em desenvolver uma API que irá recolher os dados de medições de vasão e pressão de bombas do DMAE afim de compará-los e sinalizar quando houver alguma discrepância muito grande entre os dados de medição.",
+  "main": "consulta_elipse.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "bullmq": "^5.61.0",
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.3",
+    "express": "^5.1.0",
+    "helmet": "^8.1.0",
+    "knex": "^3.1.0",
+    "lodash": "^4.17.21",
+    "multer": "^2.0.2",
+    "pg": "^8.16.3",
+    "redis": "^5.8.3",
+    "xlsx": "^0.18.5"
+  }
+}
