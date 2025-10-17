@@ -16,6 +16,37 @@ app.use(express.json());
 // ROTAS DO BACKEND
 // ------------------------------------------------------------------
 
+const swaggerUI = require('swagger-ui-express');
+const swaggerJsDoc = require('swagger-jsdoc');
+
+// 1. Configuração do Swagger/OpenAPI
+const options = {
+    definition: {
+        openapi: '3.0.0',
+        info: {
+            title: 'DMAE Data API',
+            version: '1.0.0',
+            description: 'API para upload, processamento e disponibilização de dados ZEUS e ELIPSE.'
+        },
+        servers: [
+            {
+                url: 'http://localhost:3000',
+                description: 'Servidor de Desenvolvimento Local',
+            },
+        ],
+    },
+    // Caminho para os arquivos onde você colocará as anotações do Swagger (jsdoc)
+    apis: ['./src/controllers/*.js'], 
+};
+
+const specs = swaggerJsDoc(options);
+
+// ... (Resto do código Express)
+
+// 2. Endpoint de Documentação
+// Acesso: http://localhost:3000/api-docs
+app.use('/api-docs', swaggerUI.serve, swaggerUI.setup(specs));
+
 // RB01: API para Upload de Arquivos (Usa o Controller com Multer, Extração e Persistência)
 app.post('/api/upload', 
     // O Multer é executado primeiro (uploadController.uploadMiddleware)

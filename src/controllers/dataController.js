@@ -1,22 +1,59 @@
-// src/controllers/dataController.js
-
 const { query } = require('../config/db'); // Importa a função de consulta do DB
 
 /**
- * RB03 Corrigido: Busca todos os dados das tabelas Zeus e Elipse no DB.
- * Idealmente, isso seria filtrado por um ID de sessão ou usuário.
+ * @swagger
+ * /api/data/all:
+ *   get:
+ *     summary: Obtém todos os dados das tabelas Zeus e Elipse do banco de dados.
+ *     tags:
+ *       - Dados
+ *     description: Retorna um objeto JSON com arrays de dados separados por planilha.
+ *     responses:
+ *       '200':
+ *         description: Dados retornados com sucesso.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 planilha_zeus:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       data_hora:
+ *                         type: string
+ *                         format: date-time
+ *                       pressao_succao:
+ *                         type: number
+ *                       vazao_media:
+ *                         type: number
+ *                 planilha_elipse:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       data_hora:
+ *                         type: string
+ *                         format: date-time
+ *                       nome_estacao:
+ *                         type: string
+ *                       valor:
+ *                         type: number
+ *       '500':
+ *         description: Erro interno do servidor.
  */
+
 async function getOverallData(req, res) {
     try {
-        // Assume que você tem duas tabelas no DB: 'zeus' e 'elipse'
         
         // 1. Busca dados do Zeus (limite de 5000 linhas para não sobrecarregar)
-        const zeusResult = await query('SELECT * FROM zeus LIMIT 5000');
+        const zeusResult = await query('SELECT * FROM zeus ORDER BY data_hora DESC LIMIT 5000');
         
         // 2. Busca dados do Elipse (limite de 5000 linhas)
-        const elipseResult = await query('SELECT * FROM elipse LIMIT 5000');
+        const elipseResult = await query('SELECT * FROM elipse ORDER BY data_hora DESC LIMIT 5000');
 
-        // 3. Formata a resposta conforme o RB03 (único objeto JSON com dados separados)
+        // 3. Formata a resposta (único objeto JSON com dados separados)
         const responseData = {
             planilha_zeus: zeusResult.rows,
             planilha_elipse: elipseResult.rows,
@@ -31,9 +68,41 @@ async function getOverallData(req, res) {
 }
 
 /**
- * Endpoint que traz dados específicos para os gráficos (Exemplo: apenas colunas de Vazão e Pressão)
- * No futuro, pode receber parâmetros (filtros de data, agrupamentos, etc.)
+ * @swagger
+ * /api/data/charts:
+ *   get:
+ *     summary: Obtém dados essenciais e otimizados para a plotagem de gráficos.
+ *     tags:
+ *       - Dados
+ *     description: Retorna um subconjunto de colunas do Zeus, ideal para gráficos de tempo.
+ *     responses:
+ *       '200':
+ *         description: Dados otimizados para gráficos retornados com sucesso.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 chart_data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       data_hora:
+ *                         type: string
+ *                         format: date-time
+ *                       pressao_succao:
+ *                         type: number
+ *                       pressao_recal:
+ *                         type: number
+ *                       vazao_media:
+ *                         type: number
+ *                 source:
+ *                   type: string
+ *       '500':
+ *         description: Erro interno do servidor.
  */
+
 async function getChartData(req, res) {
     try {
         // Exemplo: Buscar apenas os campos essenciais para o gráfico de comparação

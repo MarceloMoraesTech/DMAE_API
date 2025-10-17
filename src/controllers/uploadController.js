@@ -45,6 +45,54 @@ const uploadMiddleware = multer({
 
 // --- Função Principal do Controller (RB01 + RB02) ---
 
+/**
+ * @swagger
+ * /api/upload:
+ *   post:
+ *     summary: Envia e processa duas planilhas (Zeus e Elipse) para inserção no DB.
+ *     tags:
+ *       - Dados
+ *     description: Espera dois arquivos (planilha1 e planilha2) no formato multipart/form-data.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               planilha1:
+ *                 type: string
+ *                 format: binary
+ *                 description: Arquivo da Planilha 1 (CSV, XLS ou XLSX). Deve ser enviado no campo 'planilha1'.
+ *               planilha2:
+ *                 type: string
+ *                 format: binary
+ *                 description: Arquivo da Planilha 2 (CSV, XLS ou XLSX). Deve ser enviado no campo 'planilha2'.
+ *     responses:
+ *       '200':
+ *         description: Arquivos processados e dados inseridos com sucesso.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                 processados:
+ *                   type: object
+ *                   properties:
+ *                     planilha1:
+ *                       type: string
+ *                     planilha2:
+ *                       type: string
+ *       '400':
+ *         description: Erro de validação de arquivo (extensão inválida ou arquivos faltando).
+ *       '422':
+ *         description: Erro de validação de conteúdo da planilha (dados inválidos/faltantes).
+ *       '500':
+ *         description: Erro interno do servidor ou falha de banco de dados.
+ */
+
 async function handleFileUploadAndProcessing(req, res) {
     if (!req.files || !req.files.planilha1 || !req.files.planilha2) {
         return res.status(400).json({ error: 'É necessário enviar os dois arquivos: planilha1 e planilha2.', code: 400 });
