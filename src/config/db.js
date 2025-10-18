@@ -6,13 +6,34 @@ require('dotenv').config();
 const { Pool } = require('pg');
 
 // 3. Configuração do Pool de Conexões usando variáveis de ambiente
-const pool = new Pool({
-  user: process.env.DB_USER,        // Lê DB_USER do arquivo .env
-  host: process.env.DB_HOST,        // Lê DB_HOST do arquivo .env
-  database: process.env.DB_DATABASE, // Lê DB_DATABASE do arquivo .env
-  password: process.env.DB_PASSWORD, // Lê DB_PASSWORD do arquivo .env
-  port: process.env.DB_PORT,          // Lê DB_PORT do arquivo .env
-});
+// const pool = new Pool({
+//   user: process.env.DB_USER,        // Lê DB_USER do arquivo .env
+//   host: process.env.DB_HOST,        // Lê DB_HOST do arquivo .env
+//   database: process.env.DB_DATABASE, // Lê DB_DATABASE do arquivo .env
+//   password: process.env.DB_PASSWORD, // Lê DB_PASSWORD do arquivo .env
+//   port: process.env.DB_PORT,          // Lê DB_PORT do arquivo .env
+// });
+
+const config = {
+    // Se você usa as variáveis separadas:
+    user: process.env.DB_USER,
+    host: process.env.DB_HOST,
+    database: process.env.DB_DATABASE,
+    password: process.env.DB_PASSWORD,
+    port: process.env.DB_PORT,
+    
+    // OU se você usa DATABASE_URL:
+    // connectionString: process.env.DATABASE_URL, 
+    
+    // ---------------------------------
+    // ESTA É A PARTE ESSENCIAL PARA O RENDER:
+    ssl: {
+      rejectUnauthorized: false 
+    }
+    // ---------------------------------
+};
+
+const pool = new Pool(config);
 
 // Exemplo: Testar a conexão
 pool.connect()
