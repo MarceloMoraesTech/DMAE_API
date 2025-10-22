@@ -111,20 +111,71 @@ async function getChartData(req, res) {
                 data_hora,
                 pressao_succao,
                 pressao_recal,
-                vazao_media 
+                vazao_media
             FROM 
                 zeus
             ORDER BY 
-                data_hora
+                data_hora 
             LIMIT 
                 2000;
         `;
         
         const result = await query(sql);
+        const data = result.rows;
+
+    
+        const limites = {
+            pressao_succao: { min: 100, max: 2500 },
+            pressao_recal: { min: 3000, max: 50000 }
+        };
+
+        const alertas = [];
+
+    
+        for (const row of data) {
+            const { data_hora, pressao_succao, pressao_recal } = row;
+
+            // Consultando as pressões 
+            // de succção
+            if (pressao_succao > limites.pressao_succao.max) {
+                alertas.push({
+                    tipo: "Pressão de Sucção Alta",
+                    valor: pressao_succao,
+                    limite: limites.pressao_succao.max,
+                    data_hora
+                });
+            } else if (pressao_succao < limites.pressao_succao.min) {
+                alertas.push({
+                    tipo: "Pressão de Sucção Baixa",
+                    valor: pressao_succao,
+                    limite: limites.pressao_succao.min,
+                    data_hora
+                });
+            }
+
+            // Consultando as pressões 
+            // de recalque
+            if (pressao_recal > limites.pressao_recal.max) {
+                alertas.push({
+                    tipo: "Pressão de Recalque Alta",
+                    valor: pressao_recal,
+                    limite: limites.pressao_recal.max,
+                    data_hora
+                });
+            } else if (pressao_recal < limites.pressao_recal.min) {
+                alertas.push({
+                    tipo: "Pressão de Recalque Baixa",
+                    valor: pressao_recal,
+                    limite: limites.pressao_recal.min,
+                    data_hora
+                });
+            }
+        }
 
         // Retorna os dados em formato JSON, prontos para o frontend plotar
         return res.status(200).json({
-            chart_data: result.rows,
+            chart_data: data,
+            alertas: alertas,
             source: "zeus"
         });
 
