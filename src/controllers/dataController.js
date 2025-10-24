@@ -118,9 +118,9 @@ async function getChartData(req, res) {
             FROM 
                 zeus
             ORDER BY 
-                data_hora ASC, -- Ordena primeiro por data/hora (para o DISTINCT)
-                pressao_succao DESC, -- OU qualquer outra coluna para resolver o desempate, se necessário
-                pressao_recal DESC 
+                data_hora >= $1 AND data_hora <= $2 -- <--- Usa os parâmetros
+            ORDER BY 
+                data_hora ASC
             LIMIT 
                 2000;
         `;
