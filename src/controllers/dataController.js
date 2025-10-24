@@ -109,18 +109,18 @@ async function getChartData(req, res) {
         const { start, end } = req.query;
         // Exemplo: Buscar apenas os campos essenciais para o gráfico de comparação
         const sql = `
-            SELECT
-                DISTINCT ON (data_hora)  -- <--- CRÍTICO: Garante apenas um registro por data/hora
+            SELECT 
+                DISTINCT ON (data_hora)
                 data_hora,
                 pressao_succao,
                 pressao_recal,
                 vazao_media 
             FROM 
                 zeus
+            WHERE
+                data_hora >= $1 AND data_hora <= $2
             ORDER BY 
-                data_hora >= $1 AND data_hora <= $2 -- <--- Usa os parâmetros
-            ORDER BY 
-                data_hora ASC
+                data_hora ASC  -- <--- Correção: Garante que data_hora seja a primeira ordem
             LIMIT 
                 2000;
         `;
