@@ -105,9 +105,12 @@ async function getOverallData(req, res) {
 
 async function getChartData(req, res) {
     try {
+        // Recebe os parâmetros de data (o frontend já envia estes)
+        const { start, end } = req.query;
         // Exemplo: Buscar apenas os campos essenciais para o gráfico de comparação
         const sql = `
-            SELECT 
+            SELECT
+                DISTINCT ON (data_hora)  -- <--- CRÍTICO: Garante apenas um registro por data/hora
                 data_hora,
                 pressao_succao,
                 pressao_recal,
@@ -115,12 +118,15 @@ async function getChartData(req, res) {
             FROM 
                 zeus
             ORDER BY 
-                data_hora
+                data_hora ASC, -- Ordena primeiro por data/hora (para o DISTINCT)
+                pressao_succao DESC, -- OU qualquer outra coluna para resolver o desempate, se necessário
+                pressao_recal DESC 
             LIMIT 
                 2000;
         `;
-        
-        const result = await query(sql);
+
+        // Passa os parâmetros de data para a função query
+        const result = await query(sql, [start, end]);
 
         // Retorna os dados em formato JSON, prontos para o frontend plotar
         return res.status(200).json({
