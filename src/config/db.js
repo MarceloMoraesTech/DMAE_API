@@ -5,15 +5,6 @@ require('dotenv').config();
 // 2. Importa a classe Pool do pacote 'pg'
 const { Pool } = require('pg');
 
-// 3. Configuração do Pool de Conexões usando variáveis de ambiente
-// const pool = new Pool({
-//   user: process.env.DB_USER,        // Lê DB_USER do arquivo .env
-//   host: process.env.DB_HOST,        // Lê DB_HOST do arquivo .env
-//   database: process.env.DB_DATABASE, // Lê DB_DATABASE do arquivo .env
-//   password: process.env.DB_PASSWORD, // Lê DB_PASSWORD do arquivo .env
-//   port: process.env.DB_PORT,          // Lê DB_PORT do arquivo .env
-// });
-
 const config = {
     // Se você usa as variáveis separadas:
     user: process.env.DB_USER,

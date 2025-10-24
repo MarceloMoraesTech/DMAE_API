@@ -1,6 +1,7 @@
 // src/app.js (Com a estrutura limpa)
 
 const express = require('express');
+const cors = require('cors');
 const app = express();
 require('dotenv').config(); 
 
@@ -9,6 +10,11 @@ const uploadController = require('./controllers/uploadController');
 const dataController = require('./controllers/dataController'); 
 
 const PORT = process.env.PORT || 3000;
+
+// Configura o middleware CORS AQUI
+// ------------------------------------------------------------------
+app.use(cors()); // 2. Usa o middleware CORS, permitindo todas as origens (*)
+// -----
 
 app.use(express.json());
 
