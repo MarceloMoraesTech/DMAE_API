@@ -31,57 +31,37 @@ const COLUMN_MAP = {
  * @returns {string} Nome da coluna padronizado (ou o original se não mapeado).
  */
 function normalizeHeader(colName) {
-   // 1. Converte para string e remove espaços em branco das extremidades (resolvendo o erro .trim)
-    const rawCleanedName = String(colName || '').trim();
+   // 1. Converte para string e aplica normalização Unicode.
+    // Isso garante que caracteres especiais de espaço ou acentuação sejam tratados.
+    let rawCleanedName = String(colName || '')
+        .normalize('NFD') // Decompõe caracteres (ex: 'á' vira 'a' + acento)
+        .replace(/[\u0300-\u036f]/g, "") // Remove os acentos (combinando com a linha acima)
+        .trim(); // Remove espaços em branco das extremidades (agora mais seguro)
 
     if (rawCleanedName.length === 0) {
         return '';
     }
 
-    // 2. Normalização: Converte para minúsculo e substitui MÚLTIPLOS espaços por UM ÚNICO espaço.
-    // Isso garante consistência, por exemplo, 'Vazao  Media' -> 'vazao media'
-    const normalizedKey = rawCleanedName
+    // 2. Cria a chave padronizada: minúsculo, substitui múltiplos espaços/non-breaking spaces por um único.
+    // O '\s' já inclui o espaço normal e a tabulação. Vamos usá-lo após a normalização.
+    const searchKey = rawCleanedName
         .toLowerCase()
-        .replace(/\s+/g, ' '); // Substitui um ou mais espaços por um único espaço
+        // Substitui todos os caracteres de espaço (incluindo quebras de linha e non-breaking space) por um único espaço
+        .replace(/\s+/g, ' '); 
 
-    // 3. Tenta buscar no mapa usando a chave padronizada (em minúsculo, com espaços consistentes)
-    // O mapeamento em minúsculo ('vazao media') deve ser o suficiente agora.
-    if (COLUMN_MAP[normalizedKey]) {
-        return COLUMN_MAP[normalizedKey]; // DEVE ser 'vazao_media'
+    // 3. Tenta buscar no mapa a chave padronizada (ex: 'vazao media')
+    if (COLUMN_MAP[searchKey]) {
+        return COLUMN_MAP[searchKey]; // DEVE ser 'vazao_media'
     }
 
-    // 4. Fallback: Se não encontrar, retorna o nome limpo sem caracteres especiais (seu fallback anterior)
-    // A chave do seu mapa 'data_hora' precisa de um tratamento diferente para o 'Data/Hora', então vamos
-    // ajustar a lógica de fallback.
-    
-    // Para tratar 'Data/Hora', vamos tentar remover tudo que não seja letra, número ou underscore,
-    // garantindo que ele não retorne 'datahora' e sim 'data_hora' (que é o que está no mapa).
-    
-    // Se a busca principal falhar, o nome original 'Data/Hora' viraria 'data/hora' e não seria encontrado no mapa.
-    // Vamos corrigir a busca para ser mais flexível com o mapa.
-
-    // A MUDANÇA ESSENCIAL é na busca pelo mapa:
-
-    // Tente com a busca apenas em minúsculo:
-    const searchKey = rawCleanedName.toLowerCase(); 
-
-    // Busca exata (sua lógica original, mas usando o nome LIMPO)
-    if (COLUMN_MAP[searchKey]) { // Ex: 'vazao media' -> 'vazao_media'
-        return COLUMN_MAP[searchKey];
-    }
-    if (COLUMN_MAP[rawCleanedName]) { // Ex: 'Vazao Media' -> 'vazao_media'
+    // 4. Tenta buscar a chave original limpa (ex: 'Data/Hora' - que pode ter caracteres preservados)
+    if (COLUMN_MAP[rawCleanedName]) {
         return COLUMN_MAP[rawCleanedName];
     }
     
-    // Fallback: Remove caracteres especiais e tenta buscar
-    const fallbackKey = normalizedKey.replace(/[^a-z0-9]/g, ''); // Remove todos os símbolos, incluindo '/' e ' '
-    if (COLUMN_MAP[fallbackKey]) { // Isto é para chaves como 'datahora' se você tivesse no mapa
-        return COLUMN_MAP[fallbackKey];
-    }
-
-
-    // Seu fallback original: (mantido apenas para garantir que retorna uma string limpa)
+    // 5. Fallback: remove caracteres que não sejam letras, números ou underscore
     return searchKey.replace(/[^a-z0-9_]/g, '');
+
 }
 
 
