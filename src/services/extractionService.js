@@ -21,7 +21,7 @@ const COLUMN_MAP = {
     'datahora': 'data_hora',
     'nome_estacao': 'nome_estacao',
     'nome_variavel': 'nome_variavel',
-    'var_local': 'var_local',
+    'var_local': 'variavel_local',
     'Valor': 'valor',
     'Unidade': 'unidade',
 };
