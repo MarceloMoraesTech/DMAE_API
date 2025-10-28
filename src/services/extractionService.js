@@ -143,7 +143,7 @@ function extractDataFromSpreadsheet(filePath) {
     const finalData = XLSX.utils.sheet_to_json(worksheet, {
         raw: false,
         header: normalizedHeaders, // Usa os cabeçalhos normalizados (incluindo nulos/vazios, mas o .filter acima garante a validação)
-        range: 1 // Ignora a primeira linha (o cabeçalho original)
+        range: 2 // Ignora a primeira linha (o cabeçalho original)
     });
 
     // Filtra objetos com colunas vazias
