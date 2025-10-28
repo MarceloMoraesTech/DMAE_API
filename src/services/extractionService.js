@@ -10,6 +10,7 @@ const COLUMN_MAP = {
     'PRESSAO DE RECALQUE': 'pressao_recal',
     'Total': 'total',
     'Vazao Media': 'vazao_media',
+    'Vazao Medio': 'vazao_media',
     'Evento': 'evento',
     // Adicionando variações em minúsculo para robustez
     'pressao de succao': 'pressao_succao',
