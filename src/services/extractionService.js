@@ -31,7 +31,12 @@ const COLUMN_MAP = {
  * @returns {string} Nome da coluna padronizado (ou o original se não mapeado).
  */
 function normalizeHeader(colName) {
-    const cleanedName = colName.trim();
+    const cleanedName = String(colName || '').trim();
+
+    // Se o cabeçalho estiver vazio (por exemplo, coluna extra vazia), retorne uma string vazia
+    if (cleanedName.length === 0) {
+        return '';
+    }
 
     // 1. Tenta buscar o nome exato (com a capitalização original) no mapa
     if (COLUMN_MAP[cleanedName]) {
