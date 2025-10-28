@@ -1,75 +1,44 @@
-// src/app.js (Com a estrutura limpa)
-
 const express = require('express');
 const cors = require('cors');
 const app = express();
 require('dotenv').config(); 
 
-// Importa os Controllers
-const uploadController = require('./controllers/uploadController'); 
-const dataController = require('./controllers/dataController'); 
+// Importa o arquivo de Rotas
+const dataRoutes = require('./routes/dataRoutes'); 
 
 const PORT = process.env.PORT || 3000;
 
-// Configura o middleware CORS AQUI
-// ------------------------------------------------------------------
-app.use(cors()); // 2. Usa o middleware CORS, permitindo todas as origens (*)
-// -----
-
+// Configurações e Middlewares
+app.use(cors()); 
 app.use(express.json());
 
+
 // ------------------------------------------------------------------
-// ROTAS DO BACKEND
+// CARREGAMENTO DE ROTAS: Use um prefixo /api para todas as rotas
 // ------------------------------------------------------------------
+app.use('/api', dataRoutes); 
 
-const swaggerUI = require('swagger-ui-express');
-const swaggerJsDoc = require('swagger-jsdoc');
-
-// 1. Configuração do Swagger/OpenAPI
-const options = {
-    definition: {
-        openapi: '3.0.0',
-        info: {
-            title: 'DMAE Data API',
-            version: '1.0.0',
-            description: 'API para upload, processamento e disponibilização de dados ZEUS e ELIPSE.'
-        },
-        servers: [
-            {
-                url: 'http://localhost:3000',
-                description: 'Servidor de Desenvolvimento Local',
-            },
-        ],
-    },
-    // Caminho para os arquivos onde você colocará as anotações do Swagger (jsdoc)
-    apis: ['./src/controllers/*.js'], 
-};
-
-const specs = swaggerJsDoc(options);
-
-// ... (Resto do código Express)
-
-// 2. Endpoint de Documentação
-// Acesso: http://localhost:3000/api-docs
-app.use('/api-docs', swaggerUI.serve, swaggerUI.setup(specs));
-
-// RB01: API para Upload de Arquivos (Usa o Controller com Multer, Extração e Persistência)
-app.post('/api/upload', 
-    // O Multer é executado primeiro (uploadController.uploadMiddleware)
-    (req, res, next) => {
-        uploadController.uploadMiddleware(req, res, (err) => {
-            // ... (Lógica de tratamento de erro do Multer)
-            next();
+// ------------------------------------------------------------------
+// CONFIGURAÇÃO DE TRATAMENTO DE ERRO (Recomendado)
+// O Multer ou erros do DB
+app.use((err, req, res, next) => {
+    console.error(err.stack);
+    
+    // Tratamento de erro específico do Multer para retornar 400
+    if (err instanceof multer.MulterError || (err.message && err.message.startsWith('400|'))) {
+        const [statusCode, message] = err.message.includes('|') ? err.message.split('|') : [400, 'Erro de upload de arquivo.'];
+        return res.status(parseInt(statusCode) || 400).json({ 
+            error: message,
+            code: parseInt(statusCode) || 400
         });
-    },
-    // O Controller lida com a extração e persistência (uploadController.handleFileUploadAndProcessing)
-    uploadController.handleFileUploadAndProcessing
-);
+    }
 
-// RB03 CORRIGIDO: APIs para Disponibilização de Dados do DB para Gráficos
-app.get('/api/data/all', dataController.getOverallData);
-app.get('/api/data/charts', dataController.getChartData);
-app.get('/api/data/faturamento-status', dataController.getFaturamentoStatus);
+    return res.status(500).json({
+        error: 'Algo deu errado no servidor.',
+        details: err.message
+    });
+});
+// ------------------------------------------------------------------
 
 app.listen(PORT, () => {
     console.log(`Servidor rodando na porta ${PORT}`);

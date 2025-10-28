@@ -1,12 +1,11 @@
-
 const path = require('path');
-const fs = require('fs/promises'); // Para deletar arquivos temporários
+const fs = require('fs/promises');
 const { extractDataFromSpreadsheet } = require('../services/extractionService');
 const { insertZeusData, insertElipseData } = require('../repositories/dataRepository');
 const multer = require('multer'); 
 
-// --- Configuração do Multer (RB01) ---
-const uploadDir = path.join(__dirname, '..', '..', 'uploads_temp'); // Volta duas pastas para a raiz
+// --- Configuração do Multer ---
+const uploadDir = path.join(__dirname, '..', '..', 'uploads_temp');
 
 // Garante que a pasta temporária exista
 fs.mkdir(uploadDir, { recursive: true });
@@ -16,7 +15,6 @@ const storage = multer.diskStorage({
         cb(null, uploadDir); 
     },
     filename: (req, file, cb) => {
-        // Nomes únicos: timestamp + nome original (RB01)
         const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
         cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
     }
@@ -25,79 +23,101 @@ const storage = multer.diskStorage({
 const uploadMiddleware = multer({
     storage: storage,
     fileFilter: (req, file, cb) => {
-        // Validação do formato (RB01)
         const allowedExtensions = ['.xlsx', '.xls', '.csv'];
         const ext = path.extname(file.originalname).toLowerCase();
         
         if (allowedExtensions.includes(ext)) {
             cb(null, true);
         } else {
-            // Resposta de Erro (Formato Inválido) - RB01
             cb(new Error('400|Formato de arquivo inválido. Apenas .xlsx, .xls, .csv são permitidos.'), false);
         }
     },
     limits: { fileSize: 10 * 1024 * 1024 } 
 }).fields([
-    { name: 'planilha1', maxCount: 1 },
-    { name: 'planilha2', maxCount: 1 }
+    // MUDANÇA 1: Usamos os nomes de campo do frontend
+    { name: 'zeusFile', maxCount: 1 },
+    { name: 'elipseFile', maxCount: 1 }
 ]);
 
-// --- Função Principal do Controller (RB01 + RB02) ---
+// --- Função Principal do Controller ---
 
 async function handleFileUploadAndProcessing(req, res) {
-    if (!req.files || !req.files.planilha1 || !req.files.planilha2) {
-        return res.status(400).json({ error: 'É necessário enviar os dois arquivos: planilha1 e planilha2.', code: 400 });
+    
+    // MUDANÇA 2: Pegamos os arquivos pelos nomes de campo
+    const zeusFile = req.files.zeusFile ? req.files.zeusFile[0] : null;
+    const elipseFile = req.files.elipseFile ? req.files.elipseFile[0] : null;
+    
+    if (!zeusFile && !elipseFile) {
+        return res.status(400).json({ 
+            error: 'É necessário enviar pelo menos um arquivo (ZEUS ou ELIPSE).', 
+            code: 400 
+        });
     }
 
-    const file1 = req.files.planilha1[0];
-    const file2 = req.files.planilha2[0];
-    let filePaths = [file1.path, file2.path];
+    let filePaths = [];
+    let uploadStatus = { zeus: 'N/A', elipse: 'N/A' };
+    
+    // Coleta caminhos para limpeza
+    if (zeusFile) filePaths.push(zeusFile.path);
+    if (elipseFile) filePaths.push(elipseFile.path);
     
     try {
-        // 1. EXTRAÇÃO E VALIDAÇÃO (RB02 + RB04)
-        // O extractDataFromSpreadsheet vai validar o formato de cada um
-        const dataPlanilha1 = extractDataFromSpreadsheet(file1.path);
-        const dataPlanilha2 = extractDataFromSpreadsheet(file2.path);
-        
-        // 2. PERSISTÊNCIA NO DB (Lógica adaptada do RB02)
-        // Aqui é onde você decide qual dado vai para qual tabela. 
-        // Vamos usar uma heurística simples baseada nos campos obrigatórios para decidir:
+        let zeusRowsCount = 0;
+        let elipseRowsCount = 0;
 
-        const isZeus1 = dataPlanilha1.some(row => 'pressao_succao' in row);
-        const isZeus2 = dataPlanilha2.some(row => 'pressao_succao' in row);
-        
-        // Simplesmente inserindo ambos (ajuste esta lógica para ser mais robusta)
-        if (isZeus1) {
-            await insertZeusData(dataPlanilha1);
-        } else {
-            await insertElipseData(dataPlanilha1);
-        }
-
-        if (isZeus2) {
-            await insertZeusData(dataPlanilha2);
-        } else {
-            await insertElipseData(dataPlanilha2);
+        // EXTRAÇÃO E INSERÇÃO DO ARQUIVO ZEUS
+        if (zeusFile) {
+            console.log(`Processando arquivo Zeus: ${zeusFile.originalname}`);
+            const zeusData = await extractDataFromSpreadsheet(zeusFile.path);
+            
+            if (zeusData && zeusData.length > 0) {
+                // MUDANÇA 3: Inserção direta no Zeus
+                await insertZeusData(zeusData); 
+                zeusRowsCount = zeusData.length;
+                uploadStatus.zeus = `Sucesso (${zeusRowsCount} linhas)`;
+            } else {
+                uploadStatus.zeus = `Falha (Nenhuma linha válida)`;
+                throw new Error('422|Arquivo ZEUS processado mas não contém dados válidos.');
+            }
         }
         
-        // 3. Resposta de Sucesso (RB01)
+        // EXTRAÇÃO E INSERÇÃO DO ARQUIVO ELIPSE
+        if (elipseFile) {
+            console.log(`Processando arquivo Elipse: ${elipseFile.originalname}`);
+            const elipseData = await extractDataFromSpreadsheet(elipseFile.path);
+            
+            if (elipseData && elipseData.length > 0) {
+                // MUDANÇA 4: Inserção direta no Elipse
+                await insertElipseData(elipseData); 
+                elipseRowsCount = elipseData.length;
+                uploadStatus.elipse = `Sucesso (${elipseRowsCount} linhas)`;
+            } else {
+                 uploadStatus.elipse = `Falha (Nenhuma linha válida)`;
+                 throw new Error('422|Arquivo ELIPSE processado mas não contém dados válidos.');
+            }
+        }
+        
+        // Resposta de Sucesso
         return res.status(200).json({
             message: 'Arquivos processados e dados inseridos no banco de dados com sucesso.',
             processados: {
-                planilha1: isZeus1 ? 'Zeus' : 'Elipse',
-                planilha2: isZeus2 ? 'Zeus' : 'Elipse',
+                zeus: uploadStatus.zeus,
+                elipse: uploadStatus.elipse,
             },
         });
 
     } catch (processError) {
-        // Trata erros de extração/validação (422) ou DB (500)
-        const [statusCode, message] = processError.message.split('|');
+        // ... (Tratamento de erro permanece o mesmo)
+        const errorMessage = processError.message;
+        const [statusCode, message] = errorMessage.includes('|') ? errorMessage.split('|') : [500, 'Erro interno no processamento de dados.'];
+        
         return res.status(parseInt(statusCode) || 500).json({ 
             error: message || 'Erro no processamento dos arquivos.', 
-            details: processError.message, 
+            details: errorMessage, 
             code: parseInt(statusCode) || 500 
         });
     } finally {
-        // Limpeza (RB01)
+        // Limpeza dos arquivos temporários
         for (const filePath of filePaths) {
             try {
                 await fs.unlink(filePath); // Deleta o arquivo temporário
@@ -107,7 +127,6 @@ async function handleFileUploadAndProcessing(req, res) {
         }
     }
 }
-
 
 module.exports = {
     uploadMiddleware,
