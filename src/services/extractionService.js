@@ -20,6 +20,7 @@ const COLUMN_MAP = {
     // --- Planilha ELIPSE ---
     'datahora': 'data_hora',
     'nome_estacao': 'nome_estacao',
+    'nome_variavel': 'nome_variavel',
     'var_local': 'var_local',
     'Valor': 'valor',
     'Unidade': 'unidade',
