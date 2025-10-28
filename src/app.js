@@ -1,7 +1,8 @@
 const express = require('express');
 const cors = require('cors');
 const app = express();
-require('dotenv').config(); 
+require('dotenv').config();
+const multer = require('multer');
 
 // Importa o arquivo de Rotas
 const dataRoutes = require('./routes/dataRoutes'); 
