@@ -69,6 +69,7 @@ app.post('/api/upload',
 // RB03 CORRIGIDO: APIs para Disponibilização de Dados do DB para Gráficos
 app.get('/api/data/all', dataController.getOverallData);
 app.get('/api/data/charts', dataController.getChartData);
+app.get('/api/data/faturamento-status', dataController.getFaturamentoStatus);
 
 app.listen(PORT, () => {
     console.log(`Servidor rodando na porta ${PORT}`);

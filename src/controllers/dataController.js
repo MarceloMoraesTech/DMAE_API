@@ -1,49 +1,5 @@
 const { query } = require('../config/db'); // Importa a função de consulta do DB
 
-/**
- * @swagger
- * /api/data/all:
- *   get:
- *     summary: Obtém todos os dados das tabelas Zeus e Elipse do banco de dados.
- *     tags:
- *       - Dados
- *     description: Retorna um objeto JSON com arrays de dados separados por planilha.
- *     responses:
- *       '200':
- *         description: Dados retornados com sucesso.
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 planilha_zeus:
- *                   type: array
- *                   items:
- *                     type: object
- *                     properties:
- *                       data_hora:
- *                         type: string
- *                         format: date-time
- *                       pressao_succao:
- *                         type: number
- *                       vazao_media:
- *                         type: number
- *                 planilha_elipse:
- *                   type: array
- *                   items:
- *                     type: object
- *                     properties:
- *                       data_hora:
- *                         type: string
- *                         format: date-time
- *                       nome_estacao:
- *                         type: string
- *                       valor:
- *                         type: number
- *       '500':
- *         description: Erro interno do servidor.
- */
-
 async function getOverallData(req, res) {
     try {
         
@@ -67,41 +23,6 @@ async function getOverallData(req, res) {
     }
 }
 
-/**
- * @swagger
- * /api/data/charts:
- *   get:
- *     summary: Obtém dados essenciais e otimizados para a plotagem de gráficos.
- *     tags:
- *       - Dados
- *     description: Retorna um subconjunto de colunas do Zeus, ideal para gráficos de tempo.
- *     responses:
- *       '200':
- *         description: Dados otimizados para gráficos retornados com sucesso.
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 chart_data:
- *                   type: array
- *                   items:
- *                     type: object
- *                     properties:
- *                       data_hora:
- *                         type: string
- *                         format: date-time
- *                       pressao_succao:
- *                         type: number
- *                       pressao_recal:
- *                         type: number
- *                       vazao_media:
- *                         type: number
- *                 source:
- *                   type: string
- *       '500':
- *         description: Erro interno do servidor.
- */
 
 async function getChartData(req, res) {
     try {
@@ -140,7 +61,85 @@ async function getChartData(req, res) {
     }
 }
 
+// --- CONSTANTES DE REGRA DE NEGÓCIO ---
+// Regra de Faturamento: superior a 85% do intervalo de tempo de medição
+const MIN_PERCENTUAL_FATURAMENTO = 0.85; 
+// Meta Teórica para um mês completo de 31 dias (14880 pacotes/linhas)
+const META_TEORICA_MAX = 14880; 
+
+
+async function getFaturamentoStatus(req, res) {
+    // mes_ano deve ser 'YYYY-MM', ex: '2025-08'
+    const { mes_ano } = req.query; 
+
+    if (!mes_ano || !/^\d{4}-\d{2}$/.test(mes_ano)) {
+        return res.status(400).json({ error: 'Parâmetro mes_ano é obrigatório e deve estar no formato YYYY-MM (ex: 2025-08).' });
+    }
+
+    try {
+        // 1. Determina o início e o fim do mês (necessário para a cláusula WHERE)
+        const [ano, mes] = mes_ano.split('-');
+        const data_inicio = `${mes_ano}-01 00:00:00+00`;
+        
+        // Data de fim é o primeiro dia do próximo mês
+        const mes_fim_js = new Date(parseInt(ano), parseInt(mes)); 
+        const data_fim = mes_fim_js.toISOString().slice(0, 10) + ' 00:00:00+00';
+
+        // 2. Consulta o PostgreSQL para contar as linhas VÁLIDAS por estação no período
+        // Contamos apenas registros que têm uma vazão_media > 0 para garantir que o pacote de dados é válido.
+        const sql = `
+            SELECT 
+                nome_estacao AS Estacao,
+                COUNT(id_bomba) AS QtdCommEntregue
+            FROM 
+                zeus
+            WHERE 
+                data_hora >= $1 
+                AND data_hora < $2
+                AND vazao_media > 0  -- Assume-se que vazão > 0 implica pacote de dados válido
+            GROUP BY 
+                nome_estacao;
+        `;
+        
+        const result = await query(sql, [data_inicio, data_fim]);
+        const rawData = result.rows;
+
+        // 3. Aplicação da Lógica de Faturamento
+        const dataComStatus = rawData.map(item => {
+            const numerador = parseInt(item.qtdcommentregue); // nome da coluna em camelCase é convertido pelo driver pg
+            const denominador = META_TEORICA_MAX; // Usamos a constante de 14880 para 31 dias
+
+            // Cálculo do Percentual
+            const percentual = numerador / denominador;
+            
+            // Aplicação da Regra Contratual (>= 85%)
+            const status = (percentual >= MIN_PERCENTUAL_FATURAMENTO) 
+                ? 'FATURAR' 
+                : 'NÃO FATURAR';
+
+            // Retorna o objeto processado
+            return {
+                Estacao: item.estacao,
+                QtdCommEntregue: numerador,
+                MetaTeorica: denominador,
+                PercentualComms: (percentual * 100).toFixed(2) + '%', 
+                StatusFaturamento: status
+            };
+        });
+
+        return res.status(200).json(dataComStatus);
+
+    } catch (error) {
+        console.error(`Erro ao processar status de faturamento para ${mes_ano}:`, error);
+        return res.status(500).json({ 
+            error: 'Falha ao calcular faturamento a partir da tabela ZEUS.', 
+            details: error.message 
+        });
+    }
+}
+
 module.exports = {
     getOverallData,
     getChartData,
+    getFaturamentoStatus,
 };
