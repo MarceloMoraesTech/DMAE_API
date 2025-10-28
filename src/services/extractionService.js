@@ -81,8 +81,8 @@ function extractDataFromSpreadsheet(filePath) {
     const sheetName = workbook.SheetNames[0];
     const worksheet = workbook.Sheets[sheetName];
 
-    // Converte a planilha para JSON mantendo o cabeçalho original e sem mapeamento automático
-    const rawData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+    // header: 1 ainda instrui a usar a próxima linha (Linha 2) como cabeçalho
+    const rawData = XLSX.utils.sheet_to_json(worksheet, { header: 1, range: 1 });
 
     // 1. Validação de Vazio (RB04)
     if (!rawData || rawData.length <= 1) { 
