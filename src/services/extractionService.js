@@ -148,7 +148,10 @@ function extractDataFromSpreadsheet(filePath) {
 
     // Filtra objetos com colunas vazias
     const cleanedFinalData = finalData.filter(row => Object.keys(row).length > 0);
-const finalProcessedData = cleanedFinalData.map(row => {
+const numericColumns = ['pressao_succao', 'pressao_recal', 'total', 'vazao_media', 'valor']; // 'valor' é da Elipse
+
+    const finalProcessedData = cleanedFinalData.map(row => {
+        // 1. Processamento da Data (Para o formato ISO: YYYY-MM-DD HH:mm)
         if (row.data_hora && typeof row.data_hora === 'string') {
             const dateStr = row.data_hora;
             
@@ -162,10 +165,24 @@ const finalProcessedData = cleanedFinalData.map(row => {
                 // Constrói o formato ISO: YYYY-MM-DD HH:mm
                 row.data_hora = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')} ${time}`;
             } else {
-    throw new Error(`422|Erro na formatação da data: Valor inesperado encontrado ("${dateStr}"). Esperado DD/MM/AAAA HH:mm.`);
-                
+                // Se o formato da data falhar, lance o erro
+                throw new Error(`422|Erro na formatação da data: Valor inesperado encontrado ("${dateStr}"). Esperado DD/MM/AAAA HH:mm.`);
             }
         }
+
+        // 2. Processamento Numérico (Substitui ',' por '.' em todas as colunas numéricas)
+        numericColumns.forEach(col => {
+            if (row[col] && typeof row[col] === 'string') {
+                // Remove separadores de milhares (ponto) e substitui a vírgula (separador decimal) por ponto
+                let cleanValue = row[col].replace(/\./g, '').replace(/,/g, '.');
+                
+                // Converte para Number, se for um valor válido, ou deixa a string convertida
+                // A conversão para Number aqui não é estritamente necessária, 
+                // mas garante que valores numéricos sejam tratados como tal.
+                row[col] = cleanValue; // Deixa como string limpa para o DB
+            }
+        });
+
         return row;
     });
 
