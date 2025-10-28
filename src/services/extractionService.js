@@ -38,20 +38,19 @@ function normalizeHeader(colName) {
         return '';
     }
 
+    const searchKey = cleanedName.toLowerCase();
+
+    if (COLUMN_MAP[searchKey]) {
+        return COLUMN_MAP[searchKey];
+    }
+
     // 1. Tenta buscar o nome exato (com a capitalização original) no mapa
     if (COLUMN_MAP[cleanedName]) {
         return COLUMN_MAP[cleanedName];
     }
     
-    // 2. Tenta buscar o nome em caixa baixa no mapa
-    const lowerCaseName = cleanedName.toLowerCase();
-    
-    if (COLUMN_MAP[lowerCaseName]) {
-        return COLUMN_MAP[lowerCaseName];
-    }
 
-    // 3. Se não encontrar, retorna o nome em caixa baixa e sem caracteres especiais (fallback)
-    return lowerCaseName.replace(/[^a-z0-9_]/g, '');
+    return searchKey.replace(/[^a-z0-9_]/g, '');
 }
 
 
