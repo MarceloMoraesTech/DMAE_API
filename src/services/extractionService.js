@@ -31,25 +31,56 @@ const COLUMN_MAP = {
  * @returns {string} Nome da coluna padronizado (ou o original se não mapeado).
  */
 function normalizeHeader(colName) {
-    const cleanedName = String(colName || '').trim();
+   // 1. Converte para string e remove espaços em branco das extremidades (resolvendo o erro .trim)
+    const rawCleanedName = String(colName || '').trim();
 
-    // Se o cabeçalho estiver vazio (por exemplo, coluna extra vazia), retorne uma string vazia
-    if (cleanedName.length === 0) {
+    if (rawCleanedName.length === 0) {
         return '';
     }
 
-    const searchKey = cleanedName.toLowerCase();
+    // 2. Normalização: Converte para minúsculo e substitui MÚLTIPLOS espaços por UM ÚNICO espaço.
+    // Isso garante consistência, por exemplo, 'Vazao  Media' -> 'vazao media'
+    const normalizedKey = rawCleanedName
+        .toLowerCase()
+        .replace(/\s+/g, ' '); // Substitui um ou mais espaços por um único espaço
 
-    if (COLUMN_MAP[searchKey]) {
+    // 3. Tenta buscar no mapa usando a chave padronizada (em minúsculo, com espaços consistentes)
+    // O mapeamento em minúsculo ('vazao media') deve ser o suficiente agora.
+    if (COLUMN_MAP[normalizedKey]) {
+        return COLUMN_MAP[normalizedKey]; // DEVE ser 'vazao_media'
+    }
+
+    // 4. Fallback: Se não encontrar, retorna o nome limpo sem caracteres especiais (seu fallback anterior)
+    // A chave do seu mapa 'data_hora' precisa de um tratamento diferente para o 'Data/Hora', então vamos
+    // ajustar a lógica de fallback.
+    
+    // Para tratar 'Data/Hora', vamos tentar remover tudo que não seja letra, número ou underscore,
+    // garantindo que ele não retorne 'datahora' e sim 'data_hora' (que é o que está no mapa).
+    
+    // Se a busca principal falhar, o nome original 'Data/Hora' viraria 'data/hora' e não seria encontrado no mapa.
+    // Vamos corrigir a busca para ser mais flexível com o mapa.
+
+    // A MUDANÇA ESSENCIAL é na busca pelo mapa:
+
+    // Tente com a busca apenas em minúsculo:
+    const searchKey = rawCleanedName.toLowerCase(); 
+
+    // Busca exata (sua lógica original, mas usando o nome LIMPO)
+    if (COLUMN_MAP[searchKey]) { // Ex: 'vazao media' -> 'vazao_media'
         return COLUMN_MAP[searchKey];
     }
-
-    // 1. Tenta buscar o nome exato (com a capitalização original) no mapa
-    if (COLUMN_MAP[cleanedName]) {
-        return COLUMN_MAP[cleanedName];
+    if (COLUMN_MAP[rawCleanedName]) { // Ex: 'Vazao Media' -> 'vazao_media'
+        return COLUMN_MAP[rawCleanedName];
     }
     
+    // Fallback: Remove caracteres especiais e tenta buscar
+    const fallbackKey = normalizedKey.replace(/[^a-z0-9]/g, ''); // Remove todos os símbolos, incluindo '/' e ' '
+    if (COLUMN_MAP[fallbackKey]) { // Isto é para chaves como 'datahora' se você tivesse no mapa
+        return COLUMN_MAP[fallbackKey];
+    }
 
+
+    // Seu fallback original: (mantido apenas para garantir que retorna uma string limpa)
     return searchKey.replace(/[^a-z0-9_]/g, '');
 }
 
