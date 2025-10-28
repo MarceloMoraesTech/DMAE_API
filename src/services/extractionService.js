@@ -148,8 +148,28 @@ function extractDataFromSpreadsheet(filePath) {
 
     // Filtra objetos com colunas vazias
     const cleanedFinalData = finalData.filter(row => Object.keys(row).length > 0);
+const finalProcessedData = cleanedFinalData.map(row => {
+        if (row.data_hora && typeof row.data_hora === 'string') {
+            const dateStr = row.data_hora;
+            
+            // Captura DD, MM, AAAA e HH:mm do formato brasileiro
+            const dateRegex = /(\d{1,2})\/(\d{1,2})\/(\d{4})\s*(\d{2}:\d{2})/;
+            const match = dateStr.match(dateRegex);
 
-    return cleanedFinalData;
+            if (match) {
+                const [_, day, month, year, time] = match;
+                
+                // Constrói o formato ISO: YYYY-MM-DD HH:mm
+                row.data_hora = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')} ${time}`;
+            } else {
+    throw new Error(`422|Erro na formatação da data: Valor inesperado encontrado ("${dateStr}"). Esperado DD/MM/AAAA HH:mm.`);
+                
+            }
+        }
+        return row;
+    });
+
+    return finalProcessedData; // Retorna os dados com a data no formato ISO
 }
 
 module.exports = {
