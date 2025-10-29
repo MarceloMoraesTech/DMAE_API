@@ -56,38 +56,54 @@ async function insertZeusData(data) {
  * Insere um conjunto de dados do Elipse no banco de dados.
  * @param {Array<Object>} data - Array de objetos com os dados normalizados do Elipse.
  */
+
+const BATCH_SIZE = 500;
+
 async function insertElipseData(data) {
-    if (data.length === 0) return;
+   if (data.length === 0) return;
     
-    // Colunas esperadas do Elipse (ajuste se necessário)
-    const columns = ['data_hora', 'nome_estacao', 'nome_variavel', 'variavel_local', 'valor', 'unidade'];
+    // Divide os dados em lotes
+    for (let i = 0; i < data.length; i += BATCH_SIZE) {
+        const batch = data.slice(i, i + BATCH_SIZE);
+        if (batch.length === 0) continue;
 
-    const values = [];
-    const placeholders = data.map((row, rowIndex) => {
-        const rowValues = columns.map((col, colIndex) => {
-            let valueToInsert = row[col];
+        // O restante do código de construção da query vai aqui, usando 'batch' em vez de 'data'
 
-            // --- CORREÇÃO ELIPSE: Aplica conversão para o campo 'valor' ---
-            if (col === 'valor') {
-                if (valueToInsert === null || valueToInsert === undefined || valueToInsert === '') {
-                    valueToInsert = null;
-                } else {
-                    valueToInsert = parseFloat(valueToInsert) || null;
+        const columns = ['data_hora', 'nome_estacao', 'nome_variavel', 'variavel_local', 'valor', 'unidade']; 
+
+        const values = [];
+        const placeholders = batch.map((row, rowIndex) => { // Use 'batch'
+            const rowValues = columns.map((col, colIndex) => {
+                let valueToInsert = row[col];
+
+                // ... (Sua correção de float para 'valor' e outras colunas) ...
+                if (col === 'valor') {
+                    if (valueToInsert === null || valueToInsert === undefined || valueToInsert === '') {
+                        valueToInsert = null;
+                    } else {
+                        valueToInsert = parseFloat(valueToInsert) || null;
+                    }
                 }
-            }
-            values.push(valueToInsert);
-            return `$${(rowIndex * columns.length) + colIndex + 1}`;
+                
+                values.push(valueToInsert);
+                return `$${(rowIndex * columns.length) + colIndex + 1}`;
+            }).join(', ');
+            return `(${rowValues})`;
         }).join(', ');
-        return `(${rowValues})`;
-    }).join(', ');
 
-    const sql = `
-        INSERT INTO elipse (${columns.join(', ')})
-        VALUES ${placeholders}
-        ON CONFLICT (data_hora) DO NOTHING;
-    `; 
+        const sql = `
+            INSERT INTO elipse (${columns.join(', ')})
+            VALUES ${placeholders}
+            ON CONFLICT (data_hora) DO NOTHING;
+        `; 
 
-    await query(sql, values);
+        try {
+            await query(sql, values);
+        } catch (error) {
+            console.error(`Erro ao inserir lote ${i}:`, error.message);
+            throw error; // Re-lança o erro para que a transação falhe
+        }
+    }
 }
 
 module.exports = {
