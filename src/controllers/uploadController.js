@@ -86,6 +86,10 @@ async function handleFileUploadAndProcessing(req, res) {
             console.log(`Processando arquivo Elipse: ${elipseFile.originalname}`);
             const elipseData = await extractDataFromSpreadsheet(elipseFile.path);
             
+console.log('Total de linhas do Elipse para inserção:', elipseData.length); // Verifique se isso é > 0
+
+await dataRepository.insertElipseData(elipseData);
+
             if (elipseData && elipseData.length > 0) {
                 // MUDANÇA 4: Inserção direta no Elipse
                 await insertElipseData(elipseData); 
