@@ -10,7 +10,7 @@ async function insertZeusData(data) {
     if (data.length === 0) return;
 
     // Colunas esperadas do Zeus (ajuste se necessário)
-    const columns = ['data_hora', 'pressao_succao', 'pressao_recal', 'total', 'vazao_media', 'evento'];
+    const columns = ['data_hora', 'pressao_succao', 'pressao_recal', 'total', 'vazao_media', 'evento','nome_estacao'];
     
     // Constrói os placeholders e os valores para inserção em massa
     const values = [];
@@ -32,6 +32,10 @@ async function insertZeusData(data) {
                 }
             }
             // --- FIM DA CORREÇÃO DE CONVERSÃO NUMÉRICA ---
+            if (col === 'nome_estacao') {
+                // Força a inserção de 'BORDINI 400' em todas as linhas
+                valueToInsert = 'BORDINI 400'; 
+            }
 
             values.push(valueToInsert); // Coleta o valor (agora Number para os campos numéricos)
             return `$${(rowIndex * columns.length) + colIndex + 1}`;
