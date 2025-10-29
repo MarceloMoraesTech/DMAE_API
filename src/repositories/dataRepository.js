@@ -16,7 +16,24 @@ async function insertZeusData(data) {
     const values = [];
     const placeholders = data.map((row, rowIndex) => {
         const rowValues = columns.map((col, colIndex) => {
-            values.push(row[col] || null); // Coleta o valor, usando null se a coluna não existir
+            let valueToInsert = row[col];
+            
+            // --- INÍCIO DA CORREÇÃO DE CONVERSÃO NUMÉRICA ---
+            // Força a conversão para Number/Float para colunas numéricas
+            if (['pressao_succao', 'pressao_recal', 'total', 'vazao_media'].includes(col)) {
+                // Se o valor estiver vazio ou for null, mantenha null
+                if (valueToInsert === null || valueToInsert === undefined || valueToInsert === '') {
+                    valueToInsert = null;
+                } else {
+                    // Tenta converter para float. Se for uma string limpa (ex: "6660527618"), 
+                    // parseFloat funciona. Isso garante que o driver receba um tipo Number.
+                    // Usamos || null para tratar casos onde o valor pode ser NaN
+                    valueToInsert = parseFloat(valueToInsert) || null;
+                }
+            }
+            // --- FIM DA CORREÇÃO DE CONVERSÃO NUMÉRICA ---
+
+            values.push(valueToInsert); // Coleta o valor (agora Number para os campos numéricos)
             return `$${(rowIndex * columns.length) + colIndex + 1}`;
         }).join(', ');
         return `(${rowValues})`;
@@ -44,7 +61,17 @@ async function insertElipseData(data) {
     const values = [];
     const placeholders = data.map((row, rowIndex) => {
         const rowValues = columns.map((col, colIndex) => {
-            values.push(row[col] || null);
+            let valueToInsert = row[col];
+
+            // --- CORREÇÃO ELIPSE: Aplica conversão para o campo 'valor' ---
+            if (col === 'valor') {
+                if (valueToInsert === null || valueToInsert === undefined || valueToInsert === '') {
+                    valueToInsert = null;
+                } else {
+                    valueToInsert = parseFloat(valueToInsert) || null;
+                }
+            }
+            values.push(valueToInsert);
             return `$${(rowIndex * columns.length) + colIndex + 1}`;
         }).join(', ');
         return `(${rowValues})`;
