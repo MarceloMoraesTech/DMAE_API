@@ -60,7 +60,7 @@ async function insertElipseData(data) {
     if (data.length === 0) return;
     
     // Colunas esperadas do Elipse (ajuste se necessário)
-    const columns = ['data_hora', 'nome_estacao', 'nome_variavel', 'var_local', 'valor', 'unidade'];
+    const columns = ['data_hora', 'nome_estacao', 'nome_variavel', 'variavel_local', 'valor', 'unidade'];
 
     const values = [];
     const placeholders = data.map((row, rowIndex) => {
