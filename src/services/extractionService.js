@@ -173,13 +173,24 @@ const numericColumns = ['pressao_succao', 'pressao_recal', 'total', 'vazao_media
         // 2. Processamento Numérico (Substitui ',' por '.' em todas as colunas numéricas)
         numericColumns.forEach(col => {
             if (row[col] && typeof row[col] === 'string') {
-                // Remove separadores de milhares (ponto) e substitui a vírgula (separador decimal) por ponto
-                let cleanValue = row[col].replace(/\./g, '').replace(/,/g, '.');
+                let stringValue = row[col];
                 
-                // Converte para Number, se for um valor válido, ou deixa a string convertida
-                // A conversão para Number aqui não é estritamente necessária, 
-                // mas garante que valores numéricos sejam tratados como tal.
-                row[col] = cleanValue; // Deixa como string limpa para o DB
+                // 1. Remove PONTOS (Separador de Milhar no Brasil: 1.000.000)
+                let cleanValue = stringValue.replace(/\./g, '');
+
+                // 2. Substitui VÍRGULAS por PONTO (Separador Decimal no Brasil: 1,5)
+                cleanValue = cleanValue.replace(/,/g, '.');
+
+                // 3. Garante que o valor final seja um número (ou NaN se for inválido)
+                let finalNumber = parseFloat(cleanValue);
+
+                if (isNaN(finalNumber)) {
+                    // Lançar um erro se o valor não puder ser convertido (dados ruins)
+                    throw new Error(`422|Erro na formatação numérica para '${col}': Valor inválido encontrado ("${stringValue}").`);
+                }
+
+                // 4. Atribui o valor LIMPO de volta à linha (como string, que é o que o DB espera)
+                row[col] = cleanValue; 
             }
         });
 
