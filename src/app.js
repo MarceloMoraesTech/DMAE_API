@@ -8,9 +8,32 @@ const multer = require('multer');
 const dataRoutes = require('./routes/dataRoutes'); 
 
 const PORT = process.env.PORT || 3000;
+// [INÍCIO SEGURANÇA DE CORS]
 
-// Configurações e Middlewares
-app.use(cors()); 
+// Lista de domínios que podem aceder a esta API
+const whitelist = [
+  // URLs para desenvolvimento local 
+  'http://localhost:3001', 
+  'http://localhost:5173', 
+  
+  // URL DE PRODUÇÃO 
+  'https://dmae-frontend.onrender.com', 
+];
+
+const corsOptions = {
+  origin: function (origin, callback) {
+    // Permite pedidos da whitelist OU pedidos sem 'origin' (ex: Postman)
+    if (!origin || whitelist.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      // Se a origem não estiver na lista, rejeita o pedido
+      callback(new Error('Acesso não permitido pelo CORS'));
+    }
+  }
+};
+
+// Usa o middleware CORS com as opções restritas
+app.use(cors(corsOptions));
 app.use(express.json());
 
 

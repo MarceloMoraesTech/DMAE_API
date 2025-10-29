@@ -28,6 +28,16 @@ async function getChartData(req, res) {
     try {
         // Recebe os parâmetros de data (o frontend já envia estes)
         const { start, end } = req.query;
+        // [INÍCIO DA MINHA SUGESTÃO - VALIDAÇÃO DE ROBUSTEZ]
+        // 1. Verifica se os parâmetros existem
+        if (!start || !end) {
+            return res.status(400).json({ error: 'Os parâmetros "start" e "end" são obrigatórios.' });
+        }
+        // 2. Verifica se são datas válidas (formato ISO)
+        // Se Date.parse falhar, retorna NaN
+        if (isNaN(Date.parse(start)) || isNaN(Date.parse(end))) {
+            return res.status(400).json({ error: 'Formato de data inválido. Use o formato ISO (ex: YYYY-MM-DD).' });
+        }
         // Exemplo: Buscar apenas os campos essenciais para o gráfico de comparação
         const sql = `
             SELECT 
