@@ -12,7 +12,6 @@ async function getOverallData(req, res) {
         GROUP BY data_hora, nome_estacao 
         HAVING COUNT(DISTINCT nome_variavel) >= 6 
         ORDER BY data_hora DESC 
-        LIMIT 5 -- Mantendo o limite de 5, mas você pode querer remover para pegar mais histórico
     )
     SELECT 
         t1.data_hora,
