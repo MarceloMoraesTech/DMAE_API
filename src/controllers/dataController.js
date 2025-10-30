@@ -16,7 +16,6 @@ async function getOverallData(req, res) {
     SELECT 
         t1.data_hora,
         t1.nome_estacao,
-        -- PIVOTAGEM: Transforma linhas em colunas, usando nomes REAIS da API/tabela
         
         -- Status
         MAX(CASE WHEN t1.nome_variavel = 'ModoControle' THEN t1.valor ELSE NULL END) AS modo_controle,
@@ -27,28 +26,28 @@ async function getOverallData(req, res) {
         MAX(CASE WHEN t1.nome_variavel = 'PressaoRecalque' THEN t1.valor ELSE NULL END) AS pressao_recalque,
         
         -- Nível
-        -- Assumindo que 'RSV inferior 01' é o nome da variável de nível inferior
-        MAX(CASE WHEN t1.nome_variavel = 'Nível' AND t1.variavel_local_desc = 'RSV inferior 01' THEN t1.valor 
-                 WHEN t1.nome_variavel = 'RSV inferior 01' THEN t1.valor -- Tentativa de cobrir inconsistências
+        -- Assumindo que 'RSV inferior 01' é o nome que a variável_local (valor do variavel_local) recebe
+        MAX(CASE WHEN t1.nome_variavel = 'Nível' AND t1.variavel_local = 'RSV inferior 01' THEN t1.valor 
+                 WHEN t1.nome_variavel = 'RSV inferior 01' THEN t1.valor
                  ELSE NULL END) AS nivel_rsv_inferior,
 
-        -- Assumindo que 'Reservatório' é o nome da variável de nível superior
-        MAX(CASE WHEN t1.nome_variavel = 'Nível' AND t1.variavel_local_desc = 'Reservatório' THEN t1.valor 
-                 WHEN t1.nome_variavel = 'NivelRSVSuperior' THEN t1.valor -- Tentativa de cobrir inconsistências
+        -- Assumindo que 'Reservatório' é o nome que a variável_local (valor do variavel_local) recebe
+        MAX(CASE WHEN t1.nome_variavel = 'Nível' AND t1.variavel_local = 'Reservatório' THEN t1.valor 
+                 WHEN t1.nome_variavel = 'NivelRSVSuperior' THEN t1.valor 
                  ELSE NULL END) AS nivel_rsv_superior_valor,
         
-        -- Nomes das Variáveis (Útil para o frontend saber o nome do nível superior)
-        MAX(CASE WHEN t1.nome_variavel = 'Nível' AND t1.variavel_local_desc = 'Reservatório' THEN t1.variavel_local_desc ELSE NULL END) AS nivel_rsv_superior_nome,
+        -- Nomes das Variáveis 
+        MAX(CASE WHEN t1.nome_variavel = 'Nível' AND t1.variavel_local = 'Reservatório' THEN t1.variavel_local ELSE NULL END) AS nivel_rsv_superior_nome,
 
 
-        -- Correntes (Usando 'variavel_local_desc' para diferenciar as bombas)
-        MAX(CASE WHEN t1.nome_variavel = 'Corrente' AND t1.variavel_local_desc = 'GMB 01' THEN t1.valor ELSE NULL END) AS corrente_gmb1,
-        MAX(CASE WHEN t1.nome_variavel = 'Corrente' AND t1.variavel_local_desc = 'GMB 02' THEN t1.valor ELSE NULL END) AS corrente_gmb2,
-        MAX(CASE WHEN t1.nome_variavel = 'Corrente' AND t1.variavel_local_desc = 'GMB 03' THEN t1.valor ELSE NULL END) AS corrente_gmb3
+        -- Correntes (Usando 'variavel_local' para diferenciar as bombas)
+        MAX(CASE WHEN t1.nome_variavel = 'Corrente' AND t1.variavel_local = 'GMB 01' THEN t1.valor ELSE NULL END) AS corrente_gmb1,
+        MAX(CASE WHEN t1.nome_variavel = 'Corrente' AND t1.variavel_local = 'GMB 02' THEN t1.valor ELSE NULL END) AS corrente_gmb2,
+        MAX(CASE WHEN t1.nome_variavel = 'Corrente' AND t1.variavel_local = 'GMB 03' THEN t1.valor ELSE NULL END) AS corrente_gmb3
         
     FROM 
         elipse t1
-    INNER JOIN latest_elipse t2 ON t1.data_hora = t2.data_hora AND t1.nome_estacao = t2.nome_estacao -- Adicionado nome_estacao ao JOIN
+    INNER JOIN latest_elipse t2 ON t1.data_hora = t2.data_hora AND t1.nome_estacao = t2.nome_estacao
     GROUP BY 
         t1.data_hora, t1.nome_estacao
     ORDER BY 
