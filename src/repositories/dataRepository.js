@@ -94,7 +94,7 @@ async function insertElipseData(data) {
         const sql = `
             INSERT INTO elipse (${columns.join(', ')})
             VALUES ${placeholders}
-            ON CONFLICT (data_hora) DO NOTHING;
+            ON CONFLICT (data_hora, nome_variavel, variavel_local) DO NOTHING;
         `; 
 
         try {
