@@ -7,32 +7,54 @@ async function getOverallData(req, res) {
         const zeusResult = await query('SELECT * FROM zeus ORDER BY data_hora DESC LIMIT 5000');
         
         const elipseSql = `
-            WITH latest_elipse AS (
-                -- 1. Encontra o registro de data_hora mais recente que possui dados completos (7 linhas)
-                SELECT data_hora, nome_estacao FROM elipse 
-                GROUP BY data_hora, nome_estacao 
-                HAVING COUNT(DISTINCT nome_variavel) >= 6 -- Pelo menos 6 ou 7 variáveis únicas
-                ORDER BY data_hora DESC LIMIT 5
-            )
-            SELECT 
-                t1.data_hora,
-                t1.nome_estacao,
-                -- PIVOTAGEM: Transforma linhas em colunas
-                MAX(CASE WHEN t1.nome_variavel = 'modo_controle' THEN t1.valor ELSE NULL END) AS modo_controle,
-                MAX(CASE WHEN t1.nome_variavel = 'falha_comunicacao' THEN t1.valor ELSE NULL END) AS falha_comunicacao,
-                MAX(CASE WHEN t1.nome_variavel = 'nivel' THEN t1.valor ELSE NULL END) AS nivel,
-                MAX(CASE WHEN t1.nome_variavel = 'pressaosuccao' THEN t1.valor ELSE NULL END) AS pressao_succao,
-                MAX(CASE WHEN t1.nome_variavel = 'corrente' THEN t1.valor ELSE NULL END) AS corrente,
-                MAX(CASE WHEN t1.nome_variavel = 'nivel_rvz' THEN t1.valor ELSE NULL END) AS nivel_rvz,
-                MAX(CASE WHEN t1.nome_variavel = 'variavel_local' THEN t1.variavel_local ELSE NULL END) AS variavel_local_desc
-            FROM 
-                elipse t1
-            INNER JOIN latest_elipse t2 ON t1.data_hora = t2.data_hora
-            GROUP BY 
-                t1.data_hora, t1.nome_estacao
-            ORDER BY 
-                t1.data_hora DESC;
-        `;
+    WITH latest_elipse AS (
+        SELECT data_hora, nome_estacao FROM elipse 
+        GROUP BY data_hora, nome_estacao 
+        HAVING COUNT(DISTINCT nome_variavel) >= 6 
+        ORDER BY data_hora DESC 
+        LIMIT 5 -- Mantendo o limite de 5, mas você pode querer remover para pegar mais histórico
+    )
+    SELECT 
+        t1.data_hora,
+        t1.nome_estacao,
+        -- PIVOTAGEM: Transforma linhas em colunas, usando nomes REAIS da API/tabela
+        
+        -- Status
+        MAX(CASE WHEN t1.nome_variavel = 'ModoControle' THEN t1.valor ELSE NULL END) AS modo_controle,
+        MAX(CASE WHEN t1.nome_variavel = 'FalhaComunicacao' THEN t1.valor ELSE NULL END) AS falha_comunicacao,
+
+        -- Pressão
+        MAX(CASE WHEN t1.nome_variavel = 'PressaoSucção' THEN t1.valor ELSE NULL END) AS pressao_succao,
+        MAX(CASE WHEN t1.nome_variavel = 'PressaoRecalque' THEN t1.valor ELSE NULL END) AS pressao_recalque,
+        
+        -- Nível
+        -- Assumindo que 'RSV inferior 01' é o nome da variável de nível inferior
+        MAX(CASE WHEN t1.nome_variavel = 'Nível' AND t1.variavel_local_desc = 'RSV inferior 01' THEN t1.valor 
+                 WHEN t1.nome_variavel = 'RSV inferior 01' THEN t1.valor -- Tentativa de cobrir inconsistências
+                 ELSE NULL END) AS nivel_rsv_inferior,
+
+        -- Assumindo que 'Reservatório' é o nome da variável de nível superior
+        MAX(CASE WHEN t1.nome_variavel = 'Nível' AND t1.variavel_local_desc = 'Reservatório' THEN t1.valor 
+                 WHEN t1.nome_variavel = 'NivelRSVSuperior' THEN t1.valor -- Tentativa de cobrir inconsistências
+                 ELSE NULL END) AS nivel_rsv_superior_valor,
+        
+        -- Nomes das Variáveis (Útil para o frontend saber o nome do nível superior)
+        MAX(CASE WHEN t1.nome_variavel = 'Nível' AND t1.variavel_local_desc = 'Reservatório' THEN t1.variavel_local_desc ELSE NULL END) AS nivel_rsv_superior_nome,
+
+
+        -- Correntes (Usando 'variavel_local_desc' para diferenciar as bombas)
+        MAX(CASE WHEN t1.nome_variavel = 'Corrente' AND t1.variavel_local_desc = 'GMB 01' THEN t1.valor ELSE NULL END) AS corrente_gmb1,
+        MAX(CASE WHEN t1.nome_variavel = 'Corrente' AND t1.variavel_local_desc = 'GMB 02' THEN t1.valor ELSE NULL END) AS corrente_gmb2,
+        MAX(CASE WHEN t1.nome_variavel = 'Corrente' AND t1.variavel_local_desc = 'GMB 03' THEN t1.valor ELSE NULL END) AS corrente_gmb3
+        
+    FROM 
+        elipse t1
+    INNER JOIN latest_elipse t2 ON t1.data_hora = t2.data_hora AND t1.nome_estacao = t2.nome_estacao -- Adicionado nome_estacao ao JOIN
+    GROUP BY 
+        t1.data_hora, t1.nome_estacao
+    ORDER BY 
+        t1.data_hora DESC;
+`;
 
         const elipseResult = await query(elipseSql);
 
@@ -68,7 +90,7 @@ async function getChartData(req, res) {
             WHERE
                 data_hora >= $1 AND data_hora <= $2
             ORDER BY 
-                data_hora ASC  -- <--- Correção: Garante que data_hora seja a primeira ordem
+                data_hora ASC  
             LIMIT 
                 2000;
         `;
