@@ -55,6 +55,22 @@ async function getChartData(req, res) {
     try {
         // Recebe os parâmetros de data (o frontend já envia estes)
         const { start, end } = req.query;
+
+        // por padrão a pesquisa usara os ultimos 31 dias caso 
+        // nao seja informado nenhum valor (default como ultimos 31 dias)
+        let startDate = start;
+        let endDate = end;
+
+        if (!startDate || !endDate) {
+            const now = new Date();
+            const past = new Date();
+            past.setDate(now.getDate() - 31);
+
+            // Formata no padrão ISO para compatibilidade com o banco
+            endDate = now.toISOString().split('T')[0];
+            startDate = past.toISOString().split('T')[0];
+        }
+
         // Exemplo: Buscar apenas os campos essenciais para o gráfico de comparação
         const sql = `
             SELECT 
@@ -74,11 +90,62 @@ async function getChartData(req, res) {
         `;
 
         // Passa os parâmetros de data para a função query
-        const result = await query(sql, [start, end]);
+        const result = await query(sql, [startDate, endDate]);
+        const data = result.rows;
 
-        // Retorna os dados em formato JSON, prontos para o frontend plotar
+
+        // colocando denovo a logica de alerta
+      
+
+        const limites = {
+            pressao_succao: { min: 100, max: 2500 },
+            pressao_recal: { min: 3000, max: 50000 }
+        };
+
+        const alertas = [];
+
+        for (const row of data) {
+            const { data_hora, pressao_succao, pressao_recal } = row;
+
+            // Verificação de pressão de sucção
+            if (pressao_succao > limites.pressao_succao.max) {
+                alertas.push({
+                    tipo: "Pressão de Sucção Alta",
+                    valor: pressao_succao,
+                    limite: limites.pressao_succao.max,
+                    data_hora
+                });
+            } else if (pressao_succao < limites.pressao_succao.min) {
+                alertas.push({
+                    tipo: "Pressão de Sucção Baixa",
+                    valor: pressao_succao,
+                    limite: limites.pressao_succao.min,
+                    data_hora
+                });
+            }
+
+            // Verificação de pressão de recalque
+            if (pressao_recal > limites.pressao_recal.max) {
+                alertas.push({
+                    tipo: "Pressão de Recalque Alta",
+                    valor: pressao_recal,
+                    limite: limites.pressao_recal.max,
+                    data_hora
+                });
+            } else if (pressao_recal < limites.pressao_recal.min) {
+                alertas.push({
+                    tipo: "Pressão de Recalque Baixa",
+                    valor: pressao_recal,
+                    limite: limites.pressao_recal.min,
+                    data_hora
+                });
+            }
+        }
+
+        // Retorna os dados e os alertas
         return res.status(200).json({
-            chart_data: result.rows,
+            chart_data: data,
+            alertas: alertas,
             source: "zeus"
         });
 
@@ -87,6 +154,8 @@ async function getChartData(req, res) {
         return res.status(500).json({ error: 'Falha ao gerar dados para gráficos.', details: error.message });
     }
 }
+
+
 
 // --- CONSTANTES DE REGRA DE NEGÓCIO ---
 // Regra de Faturamento: superior a 85% do intervalo de tempo de medição
