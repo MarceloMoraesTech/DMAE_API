@@ -6,8 +6,35 @@ async function getOverallData(req, res) {
         // 1. Busca dados do Zeus (limite de 5000 linhas para não sobrecarregar)
         const zeusResult = await query('SELECT * FROM zeus ORDER BY data_hora DESC LIMIT 5000');
         
-        // 2. Busca dados do Elipse (limite de 5000 linhas)
-        const elipseResult = await query('SELECT * FROM elipse ORDER BY data_hora DESC LIMIT 5000');
+        const elipseSql = `
+            WITH latest_elipse AS (
+                -- 1. Encontra o registro de data_hora mais recente que possui dados completos (7 linhas)
+                SELECT data_hora, nome_estacao FROM elipse 
+                GROUP BY data_hora, nome_estacao 
+                HAVING COUNT(DISTINCT nome_variavel) >= 6 -- Pelo menos 6 ou 7 variáveis únicas
+                ORDER BY data_hora DESC LIMIT 5
+            )
+            SELECT 
+                t1.data_hora,
+                t1.nome_estacao,
+                -- PIVOTAGEM: Transforma linhas em colunas
+                MAX(CASE WHEN t1.nome_variavel = 'modo_controle' THEN t1.valor ELSE NULL END) AS modo_controle,
+                MAX(CASE WHEN t1.nome_variavel = 'falha_comunicacao' THEN t1.valor ELSE NULL END) AS falha_comunicacao,
+                MAX(CASE WHEN t1.nome_variavel = 'nivel' THEN t1.valor ELSE NULL END) AS nivel,
+                MAX(CASE WHEN t1.nome_variavel = 'pressaosuccao' THEN t1.valor ELSE NULL END) AS pressao_succao,
+                MAX(CASE WHEN t1.nome_variavel = 'corrente' THEN t1.valor ELSE NULL END) AS corrente,
+                MAX(CASE WHEN t1.nome_variavel = 'nivel_rvz' THEN t1.valor ELSE NULL END) AS nivel_rvz,
+                MAX(CASE WHEN t1.nome_variavel = 'variavel_local' THEN t1.variavel_local ELSE NULL END) AS variavel_local_desc
+            FROM 
+                elipse t1
+            INNER JOIN latest_elipse t2 ON t1.data_hora = t2.data_hora
+            GROUP BY 
+                t1.data_hora, t1.nome_estacao
+            ORDER BY 
+                t1.data_hora DESC;
+        `;
+
+        const elipseResult = await query(elipseSql);
 
         // 3. Formata a resposta (único objeto JSON com dados separados)
         const responseData = {
