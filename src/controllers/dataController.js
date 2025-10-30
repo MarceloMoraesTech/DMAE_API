@@ -55,6 +55,22 @@ async function getChartData(req, res) {
     try {
         // Recebe os parâmetros de data (o frontend já envia estes)
         const { start, end } = req.query;
+
+        // por padrão a pesquisa usara os ultimos 31 dias caso 
+        // nao seja informado nenhum valor (default como ultimos 31 dias)
+        let startDate = start;
+        let endDate = end;
+
+        if (!startDate || !endDate) {
+            const now = new Date();
+            const past = new Date();
+            past.setDate(now.getDate() - 31);
+
+            // Formata no padrão ISO para compatibilidade com o banco
+            endDate = now.toISOString().split('T')[0];
+            startDate = past.toISOString().split('T')[0];
+        }
+
         // Exemplo: Buscar apenas os campos essenciais para o gráfico de comparação
         const sql = `
             SELECT 
@@ -74,7 +90,7 @@ async function getChartData(req, res) {
         `;
 
         // Passa os parâmetros de data para a função query
-        const result = await query(sql, [start, end]);
+        const result = await query(sql, [startDate, endDate]);
 
         // Retorna os dados em formato JSON, prontos para o frontend plotar
         return res.status(200).json({
@@ -87,6 +103,7 @@ async function getChartData(req, res) {
         return res.status(500).json({ error: 'Falha ao gerar dados para gráficos.', details: error.message });
     }
 }
+
 
 // --- CONSTANTES DE REGRA DE NEGÓCIO ---
 // Regra de Faturamento: superior a 85% do intervalo de tempo de medição
