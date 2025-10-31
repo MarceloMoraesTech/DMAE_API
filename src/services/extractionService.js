@@ -160,7 +160,12 @@ const numericColumns = ['pressao_succao', 'pressao_recal', 'total', 'vazao_media
             const match = dateStr.match(dateRegex);
 
             if (match) {
-                const [_, day, month, year, time] = match;
+                const [_, day, month, rawYear, time] = match;
+                let year = rawYear;
+                // Normalização do ano (se for 2 dígitos, assume 20XX)
+                if (year.length === 2) {
+                    year = (parseInt(year) > 70 ? '19' : '20') + year;
+                }
                 
                 // Constrói o formato ISO: YYYY-MM-DD HH:mm
                 row.data_hora = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')} ${time}`;
