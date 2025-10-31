@@ -4,7 +4,7 @@ const { query } = require('../config/db');
 
 // Define o tamanho do lote para a inserção. 
 // Um tamanho de 1000 linhas é seguro para evitar o limite de parâmetros do driver (32767).
-const BATCH_SIZEE = 1000; 
+const BATCH_SIZEE = 500; 
 
 // Colunas fixas para Zeus e Elipse
 const ZEUS_COLUMNS = ['data_hora', 'pressao_succao', 'pressao_recal', 'total', 'vazao_media', 'evento', 'nome_estacao'];
