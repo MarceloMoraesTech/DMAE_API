@@ -156,7 +156,7 @@ const numericColumns = ['pressao_succao', 'pressao_recal', 'total', 'vazao_media
             const dateStr = row.data_hora.trim();
             
             // Captura DD, MM, AAAA e HH:mm do formato brasileiro
-            const dateRegex = /^(\d{1,2})\/(\d{1,2})\/(\d{2,4})\s*(\d{2}:\d{2})$/;
+            const dateRegex = /^(\d{1,2})\/(\d{1,2})\/(\d{2,4})\s*(\d{1,2}:\d{2})$/;
             const match = dateStr.match(dateRegex);
 
             if (match) {
