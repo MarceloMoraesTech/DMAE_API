@@ -168,7 +168,7 @@ const numericColumns = ['pressao_succao', 'pressao_recal', 'total', 'vazao_media
                 }
                 
                 // Constrói o formato ISO: YYYY-MM-DD HH:mm
-                row.data_hora = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')} ${time}`;
+                row.data_hora = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')} ${time.padStart(5, '0')}`;
             } else {
                 // Se o formato da data falhar, lance o erro
                 throw new Error(`422|Erro na formatação da data: Valor inesperado encontrado ("${dateStr}"). Esperado DD/MM/AAAA HH:mm.`);
