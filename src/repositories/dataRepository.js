@@ -4,7 +4,7 @@ const { query } = require('../config/db');
 
 // Define o tamanho do lote para a inserção. 
 // Um tamanho de 1000 linhas é seguro para evitar o limite de parâmetros do driver (32767).
-const BATCH_SIZEE = 500; 
+const BATCH_SIZEE = 1000; 
 
 // Colunas fixas para Zeus e Elipse
 const ZEUS_COLUMNS = ['data_hora', 'pressao_succao', 'pressao_recal', 'total', 'vazao_media', 'evento', 'nome_estacao'];
@@ -83,36 +83,12 @@ async function batchInsert(data, columns, tableName, conflictClause) {
 
 
 /**
- * Insere um conjunto de dados do Zeus no banco de dados, usando inserção em lote.
- * É a função que estava falhando com 35264 parâmetros.
+ * Insere um conjunto de dados do Zeus no banco de dados.
  * @param {Array<Object>} data - Array de objetos com os dados normalizados do Zeus.
  */
 async function insertZeusData(data) {
     const conflictClause = 'ON CONFLICT (data_hora) DO NOTHING';
     await batchInsert(data, ZEUS_COLUMNS, 'zeus', conflictClause);
-}
-
-/**
- * Insere um conjunto de dados do Elipse no banco de dados, usando inserção em lote.
- * @param {Array<Object>} data - Array de objetos com os dados normalizados do Elipse.
- */
-async function insertElipseData(data) {
-    const conflictClause = 'ON CONFLICT (data_hora, nome_variavel, variavel_local) DO NOTHING';
-    await batchInsert(data, ELIPSE_COLUMNS, 'elipse', conflictClause);
-}
-
-module.exports = {
-    insertZeusData,
-    insertElipseData,
-};
-
-
-
-/**
- * Insere um conjunto de dados do Zeus no banco de dados.
- * @param {Array<Object>} data - Array de objetos com os dados normalizados do Zeus.
- */
-async function insertZeusData(data) {
     if (data.length === 0) return;
 
     // Colunas esperadas do Zeus (ajuste se necessário)
@@ -166,6 +142,8 @@ async function insertZeusData(data) {
 const BATCH_SIZE = 500;
 
 async function insertElipseData(data) {
+    const conflictClause = 'ON CONFLICT (data_hora, nome_variavel, variavel_local) DO NOTHING';
+    await batchInsert(data, ELIPSE_COLUMNS, 'elipse', conflictClause);
    if (data.length === 0) return;
     
     // Divide os dados em lotes
