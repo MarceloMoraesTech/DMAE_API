@@ -212,7 +212,6 @@ async function getFaturamentoStatus(req, res) {
             WHERE 
                 data_hora >= $1 
                 AND data_hora < $2
-                AND vazao_media > 0  -- Assume-se que vazão > 0 implica pacote de dados válido
             GROUP BY 
                 nome_estacao;
         `;
