@@ -4,7 +4,7 @@ async function getOverallData(req, res) {
     try {
         
         // 1. Busca dados do Zeus (limite de 5000 linhas para não sobrecarregar)
-        const zeusResult = await query('SELECT * FROM zeus ORDER BY data_hora DESC LIMIT 5000');
+        const zeusResult = await query('SELECT * FROM zeus ORDER BY data_hora DESC');
         
         const elipseSql = `
     WITH latest_elipse AS (
